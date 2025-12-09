@@ -84,6 +84,7 @@ jobs:
         OWNER: ${{ github.repository_owner }}
         REPO: ${{ github.event.repository.name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+        MY_GITHUB_API_URL: ${{ github.api_url }}
         RESPONSE_LANGUAGE: 'Korean'
         MODEL: 'qwen2.5-coder:32b'
         TRANSLATION_MODEL: 'exaone3.5:32b'
@@ -122,6 +123,7 @@ jobs:
         OWNER: ${{ github.repository_owner }}
         REPO: ${{ github.event.repository.name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+        MY_GITHUB_API_URL: ${{ github.api_url }}
         RESPONSE_LANGUAGE: 'Korean'
         MODEL: 'qwen2.5-coder:32b'
         TRANSLATION_MODEL: 'exaone3.5:32b'
@@ -145,6 +147,7 @@ jobs:
 
 ### Optional Settings
 
+- `MY_GITHUB_API_URL`: The GitHub url to use for making API requests.
 - `CUSTOM_PROMPT`: Additional instructions for the review model
 - `RESPONSE_LANGUAGE`: Target language for the review output
 - `MODEL`: Ollama model for code review

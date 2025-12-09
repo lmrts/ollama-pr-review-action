@@ -17,6 +17,10 @@ inputs:
     PR_NUMBER:
         description: 'The number of the pull request.'
         required: true
+    MY_GITHUB_API_URL:
+        description: 'The GitHub url to use for making API requests.'
+        required: false
+        default: 'https://api.github.com'
     CUSTOM_PROMPT:
         description: 'The custom prompt to use for the review.'
         required: false
@@ -49,6 +53,7 @@ runs:
         OWNER: ${{ inputs.OWNER }}
         REPO: ${{ inputs.REPO }}
         PR_NUMBER: ${{ inputs.PR_NUMBER }}
+        MY_GITHUB_API_URL: ${{ inputs.MY_GITHUB_API_URL }}
         CUSTOM_PROMPT: ${{ inputs.CUSTOM_PROMPT }}
         RESPONSE_LANGUAGE: ${{ inputs.RESPONSE_LANGUAGE }}
         MODEL: ${{ inputs.model }}

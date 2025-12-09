@@ -29,9 +29,10 @@ Your output must be valid JSON with all special characters escaped as required.
 user_prompt = """
 """
 
-def post_review_to_github(github_token, owner, repo, pr_number, review_body):
+def post_review_to_github(github_api_url, github_token, owner, repo, pr_number, review_body):
     """
     Post a review comment to a GitHub PR.
+    :param github_token: GitHub url for making API requests.
     :param github_token: GitHub token for authentication
     :param repo: repo name
     :param pr_number: PR number
@@ -43,7 +44,7 @@ def post_review_to_github(github_token, owner, repo, pr_number, review_body):
         'Accept': 'application/vnd.github.v3+json'
     }
     
-    review_url = f'https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/reviews'
+    review_url = f'{github_api_url}/repos/{owner}/{repo}/pulls/{pr_number}/reviews'
     review_data = {
         'body': review_body,
         'event': 'COMMENT'
@@ -147,7 +148,7 @@ Review to translate:
         # Cleanup translation model
         cleanup_model(api_url, translation_model)
 
-def request_code_review(api_url, github_token, owner, repo, pr_number, model, custom_prompt=None):
+def request_code_review(api_url, github_api_url, github_token, owner, repo, pr_number, model, custom_prompt=None):
     try:
         # Prepare review model
         prepare_model(api_url, model)
@@ -161,7 +162,7 @@ def request_code_review(api_url, github_token, owner, repo, pr_number, model, cu
         complete_system_prompt = f'{system_prompt}.'
         print("Complete System Prompt given to Ollama:", complete_system_prompt)
         # Get the PR files
-        pr_url = f'https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/files'
+        pr_url = f'{github_api_url}/repos/{owner}/{repo}/pulls/{pr_number}/files'
         response = requests.get(pr_url, headers=headers)
         response.raise_for_status()
         files = response.json()
@@ -214,6 +215,7 @@ if __name__ == "__main__":
     owner = os.getenv('OWNER')
     repo = os.getenv('REPO')
     pr_number = os.getenv('PR_NUMBER')
+    github_api_url = os.getenv('MY_GITHUB_API_URL', 'https://api.github.com')
     custom_prompt = os.getenv('CUSTOM_PROMPT')
     response_language = os.getenv('RESPONSE_LANGUAGE', 'english')
     model = os.getenv('MODEL', 'qwen2.5-coder:32b')
@@ -224,6 +226,7 @@ if __name__ == "__main__":
     print(f"Owner: {owner}")
     print(f"Repo: {repo}")
     print(f"PR Number: {pr_number}")
+    print(f"Github API URL: {github_api_url}")
     print(f"Custom Prompt: {custom_prompt}")
     print(f"Response Language: {response_language}")
     print(f"Model: {model}")
@@ -231,7 +234,7 @@ if __name__ == "__main__":
     
     try:
         # Get review from Ollama
-        review = request_code_review(api_url, github_token, owner, repo, pr_number, model, custom_prompt)
+        review = request_code_review(api_url, github_api_url, github_token, owner, repo, pr_number, model, custom_prompt)
 
         print(f"Review generated: {review}")
 
@@ -242,7 +245,7 @@ if __name__ == "__main__":
             print("Translation completed.")
         
         # Post review back to GitHub PR
-        post_review_to_github(github_token, owner, repo, pr_number, review)
+        post_review_to_github(github_api_url, github_token, owner, repo, pr_number, review)
         
     except Exception as e:
         print(f"Error during review process: {str(e)}")
