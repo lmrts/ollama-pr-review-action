@@ -54,18 +54,18 @@ def post_review_to_github(github_api_url, github_token, owner, repo, pr_number, 
     response.raise_for_status()
     return response.json()
 
-def manage_ollama_model(api_url, model_name, action):
+def manage_ollama_model(ollama_api_url, model_name, action):
     """
     Manage Ollama model (pull, load, unload)
     """
-    endpoint = f'{api_url}/api/generate'
+    endpoint = f'{ollama_api_url}/api/generate'
     
     if action == 'load':
         request_data = {'model': model_name}
     elif action == 'unload':
         request_data = {'model': model_name, 'keep_alive': 0}
     else:  # pull
-        endpoint = f'{api_url}/api/pull'
+        endpoint = f'{ollama_api_url}/api/pull'
         request_data = {'name': model_name}
 
     print(f"Attempting to {action} model {model_name}...")
@@ -92,32 +92,32 @@ def manage_ollama_model(api_url, model_name, action):
         print(f"Error during model {action}: {str(e)}")
         return False
 
-def prepare_model(api_url, model_name):
+def prepare_model(ollama_api_url, model_name):
     """
     Prepare model for use (pull and load)
     """
-    if not manage_ollama_model(api_url, model_name, 'pull'):
+    if not manage_ollama_model(ollama_api_url, model_name, 'pull'):
         raise Exception(f"Failed to pull model: {model_name}")
     time.sleep(2)
     
-    if not manage_ollama_model(api_url, model_name, 'load'):
+    if not manage_ollama_model(ollama_api_url, model_name, 'load'):
         raise Exception(f"Failed to load model: {model_name}")
     time.sleep(3)
 
-def cleanup_model(api_url, model_name):
+def cleanup_model(ollama_api_url, model_name):
     """
     Cleanup model after use (unload)
     """
-    manage_ollama_model(api_url, model_name, 'unload')
+    manage_ollama_model(ollama_api_url, model_name, 'unload')
     time.sleep(1)
 
-def translate_review(api_url, review_text, target_language, translation_model):
+def translate_review(ollama_api_url, review_text, target_language, translation_model):
     """
     Translate the review text using specified model
     """
     try:
         # Prepare translation model
-        prepare_model(api_url, translation_model)
+        prepare_model(ollama_api_url, translation_model)
         
         translation_prompt = f"""
 Please translate the following code review into {target_language}. 
@@ -137,7 +137,7 @@ Review to translate:
             'stream': False,
         }
     
-        translation_response = requests.post(f'{api_url}/api/generate', json=translation_request)
+        translation_response = requests.post(f'{ollama_api_url}/api/generate', json=translation_request)
         translation_response.raise_for_status()
         translation = translation_response.json()
 
@@ -146,12 +146,12 @@ Review to translate:
         return translation['response'] if 'response' in translation else translation
     finally:
         # Cleanup translation model
-        cleanup_model(api_url, translation_model)
+        cleanup_model(ollama_api_url, translation_model)
 
-def request_code_review(api_url, github_api_url, github_token, owner, repo, pr_number, model, custom_prompt=None):
+def request_code_review(ollama_api_url, github_api_url, github_token, owner, repo, pr_number, model, custom_prompt=None):
     try:
         # Prepare review model
-        prepare_model(api_url, model)
+        prepare_model(ollama_api_url, model)
         
         headers = {
             'Authorization': f'token {github_token}',
@@ -192,7 +192,7 @@ def request_code_review(api_url, github_api_url, github_token, owner, repo, pr_n
             'format': CodeReviewResponse.model_json_schema()
         }
 
-        review_response = requests.post(f'{api_url}/api/generate', json=review_request)
+        review_response = requests.post(f'{ollama_api_url}/api/generate', json=review_request)
         review_response.raise_for_status()
         review_json = review_response.json()
 
@@ -206,11 +206,11 @@ def request_code_review(api_url, github_api_url, github_token, owner, repo, pr_n
         return formatted_review
     finally:
         # Cleanup review model
-        cleanup_model(api_url, model)
+        cleanup_model(ollama_api_url, model)
 
 if __name__ == "__main__":
     # Get input arguments from environment variables
-    api_url = os.getenv('OLLAMA_API_URL')
+    ollama_api_url = os.getenv('OLLAMA_API_URL')
     github_token = os.getenv('MY_GITHUB_TOKEN')
     owner = os.getenv('OWNER')
     repo = os.getenv('REPO')
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     model = os.getenv('MODEL', 'qwen2.5-coder:32b')
     translation_model = os.getenv('TRANSLATION_MODEL', 'exaone3.5:32b')  # Add translation model
 
-    print(f"API URL: {api_url}")
+    print(f"OLLAMA API URL: {ollama_api_url}")
     print(f"GitHub Token: {github_token}")
     print(f"Owner: {owner}")
     print(f"Repo: {repo}")
@@ -234,14 +234,14 @@ if __name__ == "__main__":
     
     try:
         # Get review from Ollama
-        review = request_code_review(api_url, github_api_url, github_token, owner, repo, pr_number, model, custom_prompt)
+        review = request_code_review(ollama_api_url, github_api_url, github_token, owner, repo, pr_number, model, custom_prompt)
 
         print(f"Review generated: {review}")
 
         # Translate if needed
         if response_language.lower() != "english":
             print(f"Translating review to {response_language} using {translation_model}...")
-            review = translate_review(api_url, review, response_language, translation_model)
+            review = translate_review(ollama_api_url, review, response_language, translation_model)
             print("Translation completed.")
         
         # Post review back to GitHub PR
